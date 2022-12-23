@@ -11,6 +11,7 @@ import { DOWNLOAD_PROGRESS, ResolvedUpdateFileInfo } from "./main"
 import { blockmapFiles } from "./util"
 import { findFile, Provider } from "./providers/Provider"
 import { unlink } from "fs-extra"
+import { verifySignature } from "./windowsExecutableCodeSignatureVerifier"
 import { URL } from "url"
 import { gunzipSync } from "zlib"
 
@@ -95,12 +96,7 @@ export class NsisUpdater extends BaseUpdater {
       }
       throw e
     }
-    const result =  require("win-verify-signature").verifySignatureByPublishName(tempUpdateFile, Array.isArray(publisherName) ? publisherName : [publisherName])
-    this.logger?.info(result.message)
-    if (result.signed) {
-      return null
-    }
-    return result.message
+    return await verifySignature(Array.isArray(publisherName) ? publisherName : [publisherName], tempUpdateFile, this._logger)
   }
 
   protected doInstall(options: InstallOptions): boolean {
