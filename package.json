@@ -17,14 +17,15 @@
   ],
   "dependencies": {
     "@types/semver": "^7.3.6",
-    "builder-util-runtime": "workspace:*",
+    "builder-util-runtime": "9.0.3",
     "fs-extra": "^10.0.0",
     "js-yaml": "^4.1.0",
     "lazy-val": "^1.0.5",
     "lodash.escaperegexp": "^4.1.2",
     "lodash.isequal": "^4.5.0",
     "semver": "^7.3.5",
-    "typed-emitter": "^2.1.0"
+    "typed-emitter": "^2.1.0",
+    "win-verify-signature": "^1.2.0"
   },
   "devDependencies": {
     "@types/fs-extra": "9.0.13",
