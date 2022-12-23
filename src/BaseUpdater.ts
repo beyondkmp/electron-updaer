@@ -1,5 +1,4 @@
 import { AllPublishOptions } from "builder-util-runtime"
-import { spawn, spawnSync } from "child_process"
 import { AppAdapter } from "./AppAdapter"
 import { AppUpdater, DownloadExecutorTask } from "./AppUpdater"
 
@@ -13,8 +12,7 @@ export abstract class BaseUpdater extends AppUpdater {
 
   quitAndInstall(isSilent = false, isForceRunAfter = false): void {
     this._logger.info(`Install on explicit quitAndInstall`)
-    // If NOT in silent mode use `autoRunAppAfterInstall` to determine whether to force run the app
-    const isInstalled = this.install(isSilent, isSilent ? isForceRunAfter : this.autoRunAppAfterInstall)
+    const isInstalled = this.install(isSilent, isSilent ? isForceRunAfter : true)
     if (isInstalled) {
       setImmediate(() => {
         // this event is normally emitted when calling quitAndInstall, this emulates that
@@ -66,7 +64,7 @@ export abstract class BaseUpdater extends AppUpdater {
         isForceRunAfter,
         isAdminRightsRequired: downloadedFileInfo.isAdminRightsRequired,
       })
-    } catch (e: any) {
+    } catch (e) {
       this.dispatchError(e)
       return false
     }
@@ -97,60 +95,6 @@ export abstract class BaseUpdater extends AppUpdater {
 
       this._logger.info("Auto install update on quit")
       this.install(true, false)
-    })
-  }
-
-  protected wrapSudo() {
-    const { name } = this.app
-    const installComment = `"${name} would like to update"`
-    const sudo = this.spawnSyncLog("which gksudo || which kdesudo || which pkexec || which beesu")
-    const command = [sudo]
-    if (/kdesudo/i.test(sudo)) {
-      command.push("--comment", installComment)
-      command.push("-c")
-    } else if (/gksudo/i.test(sudo)) {
-      command.push("--message", installComment)
-    } else if (/pkexec/i.test(sudo)) {
-      command.push("--disable-internal-agent")
-    }
-    return command.join(" ")
-  }
-
-  protected spawnSyncLog(cmd: string, args: string[] = [], env = {}): string {
-    this._logger.info(`Executing: ${cmd} with args: ${args}`)
-    const response = spawnSync(cmd, args, {
-      stdio: "pipe",
-      env: { ...process.env, ...env },
-      encoding: "utf-8",
-      shell: true,
-    })
-    return response.stdout.trim()
-  }
-
-  /**
-   * This handles both node 8 and node 10 way of emitting error when spawning a process
-   *   - node 8: Throws the error
-   *   - node 10: Emit the error(Need to listen with on)
-   */
-  // https://github.com/electron-userland/electron-builder/issues/1129
-  // Node 8 sends errors: https://nodejs.org/dist/latest-v8.x/docs/api/errors.html#errors_common_system_errors
-  protected async spawnLog(cmd: string, args: string[] = [], env: any = {}): Promise<boolean> {
-    this._logger.info(`Executing: ${cmd} with args: ${args}`)
-    return new Promise<boolean>((resolve, reject) => {
-      try {
-        const p = spawn(cmd, args, {
-          stdio: "pipe",
-          env: { ...process.env, ...env },
-          detached: true,
-        })
-        p.on("error", error => {
-          reject(error)
-        })
-        p.unref()
-        resolve(p.pid !== undefined)
-      } catch (error) {
-        reject(error)
-      }
     })
   }
 }

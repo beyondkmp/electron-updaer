@@ -58,38 +58,32 @@ export class GitHubProvider extends BaseGitHubProvider<GithubUpdateInfo> {
     try {
       if (this.updater.allowPrerelease) {
         const currentChannel = this.updater?.channel || (semver.prerelease(this.updater.currentVersion)?.[0] as string) || null
-
-        if (currentChannel === null) {
+        for (const element of feed.getElements("entry")) {
           // noinspection TypeScriptValidateJSTypes
-          tag = hrefRegExp.exec(latestRelease.element("link").attribute("href"))![1]
-        } else {
-          for (const element of feed.getElements("entry")) {
-            // noinspection TypeScriptValidateJSTypes
-            const hrefElement = hrefRegExp.exec(element.element("link").attribute("href"))!
+          const hrefElement = hrefRegExp.exec(element.element("link").attribute("href"))!
 
-            // If this is null then something is wrong and skip this release
-            if (hrefElement === null) continue
+          // If this is null then something is wrong and skip this release
+          if (hrefElement === null) continue
 
-            // This Release's Tag
-            const hrefTag = hrefElement[1]
-            //Get Channel from this release's tag
-            const hrefChannel = (semver.prerelease(hrefTag)?.[0] as string) || null
+          // This Release's Tag
+          const hrefTag = hrefElement[1]
+          //Get Channel from this release's tag
+          const hrefChannel = (semver.prerelease(hrefTag)?.[0] as string) || null
 
-            const shouldFetchVersion = !currentChannel || ["alpha", "beta"].includes(currentChannel)
-            const isCustomChannel = !["alpha", "beta"].includes(String(hrefChannel))
-            // Allow moving from alpha to beta but not down
-            const channelMismatch = currentChannel === "beta" && hrefChannel === "alpha"
+          const shouldFetchVersion = !currentChannel || ["alpha", "beta"].includes(currentChannel)
+          const isCustomChannel = !["alpha", "beta"].includes(String(hrefChannel))
+          // Allow moving from alpha to beta but not down
+          const channelMismatch = currentChannel === "beta" && hrefChannel === "alpha"
 
-            if (shouldFetchVersion && !isCustomChannel && !channelMismatch) {
-              tag = hrefTag
-              break
-            }
+          if (shouldFetchVersion && !isCustomChannel && !channelMismatch) {
+            tag = hrefTag
+            break
+          }
 
-            const isNextPreRelease = hrefChannel && hrefChannel === currentChannel
-            if (isNextPreRelease) {
-              tag = hrefTag
-              break
-            }
+          const isNextPreRelease = hrefChannel && hrefChannel === currentChannel
+          if (isNextPreRelease) {
+            tag = hrefTag
+            break
           }
         }
       } else {
@@ -102,7 +96,7 @@ export class GitHubProvider extends BaseGitHubProvider<GithubUpdateInfo> {
           }
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       throw newError(`Cannot parse releases feed: ${e.stack || e.message},\nXML:\n${feedXml}`, "ERR_UPDATER_INVALID_RELEASE_FEED")
     }
 
@@ -119,7 +113,7 @@ export class GitHubProvider extends BaseGitHubProvider<GithubUpdateInfo> {
       const requestOptions = this.createRequestOptions(channelFileUrl)
       try {
         return (await this.executor.request(requestOptions, cancellationToken))!
-      } catch (e: any) {
+      } catch (e) {
         if (e instanceof HttpError && e.statusCode === 404) {
           throw newError(`Cannot find ${channelFile} in the latest release artifacts (${channelFileUrl}): ${e.stack || e.message}`, "ERR_UPDATER_CHANNEL_FILE_NOT_FOUND")
         }
@@ -130,7 +124,7 @@ export class GitHubProvider extends BaseGitHubProvider<GithubUpdateInfo> {
     try {
       const channel = this.updater.allowPrerelease ? this.getCustomChannelName(String(semver.prerelease(tag)?.[0] || "latest")) : this.getDefaultChannelName()
       rawData = await fetchData(channel)
-    } catch (e: any) {
+    } catch (e) {
       if (this.updater.allowPrerelease) {
         // Allow fallback to `latest.yml`
         rawData = await fetchData(this.getDefaultChannelName())
@@ -168,7 +162,7 @@ export class GitHubProvider extends BaseGitHubProvider<GithubUpdateInfo> {
 
       const releaseInfo: GithubReleaseInfo = JSON.parse(rawData)
       return releaseInfo.tag_name
-    } catch (e: any) {
+    } catch (e) {
       throw newError(`Unable to find latest version on GitHub (${url}), please ensure a production release exists: ${e.stack || e.message}`, "ERR_UPDATER_LATEST_VERSION_NOT_FOUND")
     }
   }
